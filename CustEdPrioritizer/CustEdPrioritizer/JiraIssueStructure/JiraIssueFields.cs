@@ -91,5 +91,21 @@ namespace CustEdPrioritizer
         }
 
         public double Total { get; set; }
+
+        // EPIC
+        [JsonProperty("customfield_10008")]
+        public string Epic { get; set; }
+
+        // STATUS
+        [JsonProperty("status")]
+        private JiraIssueFieldsStatus StatusOriginal { get; set; }
+
+        public string Status
+        {
+            get
+            {
+                return StatusOriginal.Name;
+            }
+        }
     }
 }

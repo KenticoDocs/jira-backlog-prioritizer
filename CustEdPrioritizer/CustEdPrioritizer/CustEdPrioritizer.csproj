@@ -50,9 +50,6 @@
     <StartupObject>CustEdPrioritizer.Program</StartupObject>
   </PropertyGroup>
   <ItemGroup>
-    <Reference Include="BouncyCastle.Crypto, Version=1.8.5.0, Culture=neutral, PublicKeyToken=0e99375e54769942">
-      <HintPath>..\packages\BouncyCastle.1.8.5\lib\BouncyCastle.Crypto.dll</HintPath>
-    </Reference>
     <Reference Include="Newtonsoft.Json, Version=12.0.0.0, Culture=neutral, PublicKeyToken=30ad4fe6b2a6aeed, processorArchitecture=MSIL">
       <HintPath>..\packages\Newtonsoft.Json.12.0.1\lib\net45\Newtonsoft.Json.dll</HintPath>
     </Reference>
@@ -70,7 +67,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="AtlassianConnector.cs" />
-    <Compile Include="Decrypt.cs" />
+    <Compile Include="JiraIssueStructure\JiraIssueFieldsStatus.cs" />
     <Compile Include="JiraManager.cs" />
     <Compile Include="Exceptions\AtlassianGetRequestException.cs" />
     <Compile Include="Exceptions\AtlassianPutRequestException.cs" />
@@ -87,7 +84,6 @@
     <None Include="App.config">
       <SubType>Designer</SubType>
     </None>
-    <Resource Include="AppSecrets.config" />
     <None Include="packages.config" />
   </ItemGroup>
   <ItemGroup>

@@ -90,8 +90,26 @@ namespace CustEdPrioritizer
             Writer.WriteLine($"There are {backlogIssues.Count} issues to prioritize in sprint {SprintId}.");
             Writer.WriteLine();
 
+            // Gets a non-duplicated list of epics
+            HashSet<string> epicKeys = new HashSet<string>();
+
+            foreach (JiraIssue issue in backlogIssues.Results)
+            {
+                if (issue.Fields.Epic != null && issue.Fields.Epic.StartsWith("CTC-"))
+                {
+                    epicKeys.Add(issue.Fields.Epic);
+                }
+            }
+
+            // Retrieves the issues' epics asynchronously.
+            var epicIssues = epicKeys.Select(epic => GetEpic(epic)).ToList();
+
+            // Waits for the tasks creating pages and count their successfulness.
+            JiraIssue[] epics = await Task.WhenAll(epicIssues);
+
+
             // Prioritizes the issues asynchronously.
-            var prioritizedIssues = backlogIssues.Results.Select(issue => ProcessIssueAsync(issue)).ToList();
+            var prioritizedIssues = backlogIssues.Results.Select(issue => ProcessIssueAsync(issue, issue.Fields.Epic != null && issue.Fields.Epic.StartsWith("CTC-") ? epics.Where(epic => epic.Key == issue.Fields.Epic).FirstOrDefault() : null)).ToList();
 
             // Waits for the tasks creating pages and count their successfulness.
             Tuple<int, string>[] prioritizedResults = await Task.WhenAll(prioritizedIssues);
@@ -140,11 +158,44 @@ namespace CustEdPrioritizer
         }
 
         /// <summary>
+        /// Gets an epic specified by its key.
+        /// </summary>
+        /// <param name="epicKey">The Jira key of the epic issue.</param>
+        /// <returns>The Jira issue with the retrieved fields.</returns>
+        private async Task<JiraIssue> GetEpic(string epicKey)
+        {
+            // Prepares the resource path of the GET request retrieving the epic
+            string resourcePath = String.Format(ISSUE_BY_ID_PATH + epicKey);
+
+            string responseContent;
+
+            try
+            {
+                // Gets the JSON content from the GET request.
+                responseContent = await Connector.GetRequestAsync(resourcePath);
+            }
+            catch (NullReferenceException ex)
+            {
+                Writer.WriteLine("Exception: Retrieving of the JIRA epics failed ({0}).", ex.Message);
+                return null;
+            }
+            catch (AtlassianGetRequestException ex)
+            {
+                Writer.WriteLine("Exception: Retrieving of the JIRA epics failed ({0}: {1} - {2}).", ex.Message, ex.StatusCode, ex.ReasonPhrase);
+                Writer.WriteLine(ex.ResponseContent);
+                return null;
+            }
+
+            // Deserializes the request data into an object.
+            return JsonConvert.DeserializeObject<JiraIssue>(responseContent);
+        }
+
+        /// <summary>
         /// Ensures prioritizing issues, i.e. calculating and filling in the total prioritization number.
         /// </summary>
         /// <param name="issue">Jira issue to be calculated.</param>
         /// <returns>Result's code (0=update failed, 1=update successful, 2=update not needed) and the issue key (with the error message in case of code 0).</returns>
-        private async Task<Tuple<int, string>> ProcessIssueAsync(JiraIssue issue)
+        private async Task<Tuple<int, string>> ProcessIssueAsync(JiraIssue issue, JiraIssue epic = null)
         {
             JiraIssueFields issueValues = issue.Fields;
 
@@ -153,7 +204,6 @@ namespace CustEdPrioritizer
             double impact = issueValues.Impact / 3;
             double userbase = issueValues.Userbase / 3;
             double strategy = issueValues.Strategy / 3;
-            double experiment = issueValues.Experiment / 3;
             double due;
             if (issueValues.DueDate == default(DateTime))
             {
@@ -177,7 +227,7 @@ namespace CustEdPrioritizer
                 }
             }
 
-            double total = Math.Round(Math.Sqrt(Math.Pow(estimate * 4, 2) + Math.Pow(impact * 6, 2) + Math.Pow(userbase * 6, 2) + Math.Pow(strategy * 4, 2) + Math.Pow(experiment * 4, 2)) + due, 2);
+            double total = Math.Round(Math.Sqrt(Math.Pow(estimate * 4, 2) + Math.Pow(impact * 6, 2) + Math.Pow(userbase * 6, 2) + Math.Pow(strategy * 4, 2)) + due, 2);
             // Calculation ends here.
 
             if (total != issue.Fields.Total)

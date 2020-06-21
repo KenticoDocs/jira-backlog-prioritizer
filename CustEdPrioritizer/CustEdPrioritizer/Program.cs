@@ -16,7 +16,6 @@ namespace CustEdPrioritizer
         private static readonly string[] requiredAppSettingsBasic = { "LogFileName" };
         private static readonly string[] requiredAppSettingsConnection = { "RestBaseServiceUrl", "JiraUsername", "JiraUserApiKey" };
         private static readonly string[] requiredAppSettingsPrioritization = { "SprintId", "EmailFrom", "EmailTo", "EmailFromPassword" };
-        private static readonly string[] AppSettingsEncrypted = { "JiraUserApiKey", "EmailFromPassword" };
 
         /// <summary>
         /// The main method launched after starting the program.
