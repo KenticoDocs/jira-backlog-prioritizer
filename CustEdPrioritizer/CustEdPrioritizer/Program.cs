@@ -130,7 +130,7 @@ namespace CustEdPrioritizer
             AtlassianConnector connector = new AtlassianConnector(new Uri(appSettings["RestBaseServiceUrl"]), new AuthenticationHeaderValue("Basic", Convert.ToBase64String(Encoding.UTF8.GetBytes($"{appSettings["JiraUsername"]}:{appSettings["JiraUserApiKey"]}"))));
 
             // Converts sprint ID to a number.
-            if (!Int32.TryParse(appSettings["SprintIdString"], out int sprintId))
+            if (!Int32.TryParse(appSettings["SprintId"], out int sprintId))
             {
                 Console.WriteLine("The sprint ID is not a number.");
                 Console.ReadLine();
@@ -138,7 +138,7 @@ namespace CustEdPrioritizer
             }
             
             // Initializes a manager that prioritizes the backlog.
-            JiraManager manager = new JiraManager(connector, writer, sprintId, appSettings["EmailFrom"], appSettings["EmailTo"], appSettings["emailFromPassword"]);
+            JiraManager manager = new JiraManager(connector, writer, sprintId, appSettings["EmailFrom"], appSettings["EmailTo"], appSettings["EmailFromPassword"]);
 
             // Prioritizes the backlog.
             await manager.PrioritizeBacklogAsync();

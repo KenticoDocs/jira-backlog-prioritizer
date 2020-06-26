@@ -17,7 +17,7 @@ namespace CustEdPrioritizer
         private const int JIRA_PAGE_RESULTS_REST_LIMIT = 100;
 
         private const string JQL_FILTER_PATH = "rest/api/2/search?jql=sprint={0}+AND+status!=Closed+AND+issuetype+NOT+IN+(Epic,Sub-task)&maxResults={1}&startAt={2}&fields={3}";
-        private const string FIELDS_IDS = "duedate,customfield_10004,customfield_19148,customfield_19149,customfield_19150,customfield_19151,customfield_19152";
+        private const string FIELDS_IDS = "duedate,customfield_10004,customfield_19148,customfield_19149,customfield_19150,customfield_19151,customfield_19152,customfield_10008,status";
 
         private const string ISSUE_BY_ID_PATH = "rest/api/2/issue/";
         private const string TOTAL_FIELD_CONTENT = "{{\"fields\":{{\"customfield_19152\":{0}}}}}";
@@ -200,10 +200,33 @@ namespace CustEdPrioritizer
             JiraIssueFields issueValues = issue.Fields;
 
             // Calculation begins here:
-            double estimate = Math.Pow(issueValues.Estimate, -0.5) / 2;
-            double impact = issueValues.Impact / 3;
-            double userbase = issueValues.Userbase / 3;
-            double strategy = issueValues.Strategy / 3;
+            const double estimateProportion = 15;
+            const double impactProportion = 15;
+            const double userbaseProportion = 15;
+            const double strategyProportion = 20;
+            const double dueProportion = 35;
+
+            const double epicImpactProportion = 30;
+            const double epicUserbaseProportion = 30;
+            const double epicStrategyProportion = 40;
+
+            const double estimateConst = 0.3;
+            double estimate = Math.Pow(0.3, issueValues.Estimate) / Math.Pow(estimateConst, 0.1) * estimateProportion;
+            double impact = issueValues.Impact / 3 * impactProportion;
+            double userbase = issueValues.Userbase / 3 * userbaseProportion;
+            
+            double manualSubtotal = issueValues.Strategy / 3 * strategyProportion;
+            double epicSubtotal = 0;
+            if (epic != null && epic.Fields.Status.ToLower() == "in progress")
+            {
+                double epicImpact = epic.Fields.Impact / 3 * epicImpactProportion;
+                double epicUserbase = epic.Fields.Userbase / 3 * epicUserbaseProportion;
+                double epicStrategy = epic.Fields.Strategy / 3 * epicStrategyProportion;
+
+                epicSubtotal = epicImpact + epicUserbase + epicStrategy / 100 * strategyProportion;
+            }
+            double strategy = epicSubtotal > manualSubtotal ? epicSubtotal : manualSubtotal;
+
             double due;
             if (issueValues.DueDate == default(DateTime))
             {
@@ -216,18 +239,18 @@ namespace CustEdPrioritizer
                 switch (numberOfDays)
                 {
                     case var days when days <= issueValues.Estimate:
-                        due = 5;
+                        due = dueProportion;
                         break;
                     case var days when days > issueValues.Estimate * 5:
                         due = 0;
                         break;
                     default:
-                        due = issueValues.Estimate * (10 / numberOfDays) / 2;
+                        due = issueValues.Estimate * (dueProportion / numberOfDays) / 2;
                         break;
                 }
             }
 
-            double total = Math.Round(Math.Sqrt(Math.Pow(estimate * 4, 2) + Math.Pow(impact * 6, 2) + Math.Pow(userbase * 6, 2) + Math.Pow(strategy * 4, 2)) + due, 2);
+            double total = Math.Round(estimate + impact + userbase + strategy + due, 2);
             // Calculation ends here.
 
             if (total != issue.Fields.Total)
