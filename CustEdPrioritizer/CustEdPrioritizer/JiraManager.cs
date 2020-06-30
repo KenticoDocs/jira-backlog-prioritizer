@@ -211,7 +211,7 @@ namespace CustEdPrioritizer
             const double epicStrategyProportion = 40;
 
             const double estimateConst = 0.3;
-            double estimate = Math.Pow(0.3, issueValues.Estimate) / Math.Pow(estimateConst, 0.1) * estimateProportion;
+            double estimate = Math.Pow(estimateConst, issueValues.Estimate) / Math.Pow(estimateConst, 0.1) * estimateProportion;
             double impact = issueValues.Impact / 3 * impactProportion;
             double userbase = issueValues.Userbase / 3 * userbaseProportion;
             
